@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Painel</title>
+<meta name="theme-color" content="#1F1D1B" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Painel" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" href="icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body { background: #FAFAF7; min-height: 100vh; color: #1F1D1B; font-family: 'Inter', sans-serif; }
+.loading { padding: 40px; text-align: center; color: #8B8680; }
+.app { position: relative; padding-bottom: 100px; }
+.frame { max-width: 520px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top)) 16px 0; }
+
+.topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.topbar h1 { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 23px; margin: 0; letter-spacing: -0.02em; }
+.topbar-sub { font-size: 12.5px; color: #8B8680; }
+
+.tabs { display: flex; gap: 4px; background: #F0EEE8; border-radius: 10px; padding: 3px; margin-bottom: 16px; }
+.tab { flex: 1; background: none; border: none; border-radius: 8px; padding: 8px 0; font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 13px; color: #8B8680; cursor: pointer; }
+.tab.active { background: #FFFFFF; color: #1F1D1B; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+/* calendar */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-expand { display: flex; align-items: center; gap: 5px; background: none; border: none; font-size: 12px; color: #55524C; cursor: pointer; padding: 4px 0; }
+.cal-month-nav { display: flex; align-items: center; gap: 8px; }
+.cal-month-title { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 14px; text-transform: capitalize; }
+.nav-btn { background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 7px; width: 27px; height: 27px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #55524C; }
+.nav-btn:disabled { opacity: 0.3; }
+
+.cal-strip { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 14px; scrollbar-width: none; }
+.cal-strip::-webkit-scrollbar { display: none; }
+.cal-day { flex: 0 0 auto; width: 42px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 12px; padding: 8px 0 7px; cursor: pointer; }
+.cal-day.today { border-color: #C7C2B6; }
+.cal-day.selected { background: #1F1D1B; border-color: #1F1D1B; }
+.cal-day.selected .cal-weekday, .cal-day.selected .cal-num { color: #FAFAF7; }
+.cal-weekday { font-size: 10px; color: #8B8680; text-transform: uppercase; }
+.cal-num { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 14px; }
+.cal-dots { display: flex; gap: 2px; height: 5px; align-items: center; }
+.cal-dot { width: 4px; height: 4px; border-radius: 50%; }
+.cal-dot.live-marker { background: #C4862F; opacity: 0.5; }
+
+/* full month grid */
+.cal-grid-wrap { background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 16px; padding: 12px 10px 10px; margin-bottom: 14px; }
+.cal-grid-head { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+.cal-grid-head span { text-align: center; font-size: 10px; color: #8B8680; text-transform: uppercase; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.grid-cell { aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border-radius: 9px; border: 1px solid transparent; background: none; cursor: pointer; padding: 0; }
+.grid-cell.empty { visibility: hidden; }
+.grid-cell.today { border-color: #C7C2B6; }
+.grid-cell.selected { background: #1F1D1B; }
+.grid-cell.selected .grid-num { color: #FAFAF7; }
+.grid-num { font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 12.5px; }
+.grid-cell.other-month .grid-num { color: #C7C2B6; }
+.grid-dots { display: flex; gap: 2px; height: 4px; }
+.grid-dot { width: 3.5px; height: 3.5px; border-radius: 50%; }
+.cal-legend { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 10px; margin-top: 8px; border-top: 1px solid #F0EEE8; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 10.5px; color: #8B8680; }
+.legend-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.month-card { display: flex; align-items: center; gap: 16px; background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 16px; padding: 16px; margin-bottom: 10px; }
+.month-ring-wrap { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+.ring { width: 64px; height: 64px; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: #F0EEE8; stroke-width: 6; }
+.ring-fg { fill: none; stroke: #2F7A6B; stroke-width: 6; stroke-linecap: round; transition: stroke-dasharray 0.4s ease; }
+.ring-pct { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 13px; }
+.month-numbers { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: #55524C; flex: 1; }
+.month-numbers div { display: flex; align-items: center; gap: 6px; }
+.month-numbers b { color: #1F1D1B; font-family: 'Manrope', sans-serif; }
+.dot-legend { width: 7px; height: 7px; border-radius: 50%; }
+.month-target { color: #8B8680; margin-top: 2px; }
+
+.invest-card { display: flex; align-items: center; gap: 12px; background: #3A6EA50D; border: 1px solid #3A6EA52A; border-radius: 16px; padding: 13px 16px; margin-bottom: 16px; }
+.invest-icon { width: 32px; height: 32px; border-radius: 50%; background: #3A6EA518; color: #3A6EA5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.invest-text { display: flex; flex-direction: column; }
+.invest-label { font-size: 11.5px; color: #55524C; }
+.invest-amount { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 17px; color: #3A6EA5; }
+
+.day-head { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 15px; text-transform: capitalize; margin-bottom: 10px; }
+.quick-add-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 16px; }
+.quick-btn { display: flex; flex-direction: column; align-items: center; gap: 5px; background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 13px; padding: 10px 2px 8px; cursor: pointer; }
+.quick-icon { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.quick-label { font-size: 9.5px; color: #55524C; }
+
+.entry-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+.entry-row { display: flex; align-items: center; gap: 10px; background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 12px; padding: 10px 12px; }
+.entry-icon { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.entry-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.entry-cat { font-size: 13.5px; font-weight: 500; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.entry-note { font-size: 11.5px; color: #8B8680; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.entry-amount { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 13.5px; }
+.entry-x { background: none; border: none; color: #C7C2B6; cursor: pointer; padding: 2px; flex-shrink: 0; }
+.empty-day { font-size: 12.5px; color: #A6A199; padding: 18px 4px; text-align: center; }
+.recurring-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 9.5px; color: #8B8680; background: #F0EEE8; border-radius: 8px; padding: 1px 6px; font-weight: 400; }
+
+/* today plan */
+.plan-card { background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; }
+.plan-title { font-size: 10.5px; color: #8B8680; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+.plan-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; padding: 3px 0; }
+.plan-bar { width: 3px; height: 14px; border-radius: 2px; }
+.plan-name { flex: 1; text-transform: capitalize; color: #55524C; }
+.plan-time { font-size: 11.5px; color: #8B8680; }
+.plan-now { background: #1F1D1B; color: #FAFAF7; font-size: 9px; border-radius: 6px; padding: 1px 5px; }
+
+/* report */
+.hero-card { background: #1F1D1B; border-radius: 18px; padding: 20px; color: #FAFAF7; margin-bottom: 12px; }
+.hero-label { font-size: 11px; color: #A6A199; text-transform: uppercase; letter-spacing: 0.06em; }
+.hero-value { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 32px; letter-spacing: -0.02em; margin: 2px 0 12px; }
+.hero-value.neg { color: #F09A85; }
+.hero-split { display: flex; gap: 20px; padding-top: 12px; border-top: 1px solid #3A3733; }
+.hero-split div { display: flex; flex-direction: column; gap: 2px; }
+.hero-split span:first-child { font-size: 10.5px; color: #A6A199; }
+.hero-split span:last-child { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 15px; }
+.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.kpi { background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 14px; padding: 13px 14px; }
+.kpi-label { font-size: 10.5px; color: #8B8680; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px; display: block; }
+.kpi-value { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 19px; }
+.kpi-sub { font-size: 11px; color: #8B8680; margin-top: 2px; display: block; }
+.kpi-sub.up { color: #2F7A6B; }
+.kpi-sub.down { color: #D9573F; }
+.report-section { margin-bottom: 22px; }
+.report-section-title { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 13px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.report-section-title span:last-child { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 11.5px; color: #8B8680; }
+.bar-row { margin-bottom: 10px; }
+.bar-head { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 4px; }
+.bar-head b { font-family: 'Manrope', sans-serif; font-weight: 700; }
+.bar-pct { color: #8B8680; font-size: 11px; margin-left: 6px; }
+.bar-track { height: 7px; background: #F0EEE8; border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+.activity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.activity-card { background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 14px; padding: 13px 14px; display: flex; align-items: center; gap: 10px; }
+.activity-icon { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.activity-num { font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 17px; }
+.activity-label { font-size: 10.5px; color: #8B8680; }
+.insight { background: #FFFFFF; border: 1px solid #ECEAE4; border-left: 3px solid #C4862F; border-radius: 10px; padding: 11px 13px; font-size: 12.5px; color: #55524C; line-height: 1.45; margin-bottom: 8px; }
+.report-empty { text-align: center; color: #A6A199; font-size: 12.5px; padding: 30px 10px; }
+
+/* settings tab */
+.q-card { background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+.q-title { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+.q-hint { font-size: 12px; color: #8B8680; line-height: 1.45; margin-bottom: 12px; }
+.q-field { margin-bottom: 12px; }
+.q-field:last-child { margin-bottom: 0; }
+.q-label { display: block; font-size: 12px; color: #55524C; margin-bottom: 5px; font-weight: 500; }
+.q-input { width: 100%; background: #FAFAF7; border: 1px solid #ECEAE4; border-radius: 9px; padding: 10px 12px; font-size: 14px; font-family: 'Inter', sans-serif; color: #1F1D1B; }
+.q-input:focus { outline: none; border-color: #C7C2B6; }
+.q-inline { display: flex; align-items: center; gap: 8px; }
+.q-inline input[type="time"] { flex: 1; background: #FAFAF7; border: 1px solid #ECEAE4; border-radius: 9px; padding: 9px 10px; font-size: 13px; }
+.q-derived { background: #F0EEE8; border-radius: 9px; padding: 10px 12px; font-size: 12px; color: #55524C; line-height: 1.5; margin-top: 4px; }
+.q-derived b { font-family: 'Manrope', sans-serif; }
+.weekday-row { display: flex; gap: 5px; }
+.weekday-btn { flex: 1; background: #FAFAF7; border: 1px solid #ECEAE4; border-radius: 8px; color: #8B8680; font-size: 11px; padding: 9px 0; cursor: pointer; }
+.weekday-btn.active { background: #C4862F14; border-color: #C4862F; color: #C4862F; font-weight: 600; }
+.block-edit-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.block-color { width: 3px; height: 22px; border-radius: 2px; flex-shrink: 0; }
+.block-name { flex: 1; background: #FAFAF7; border: 1px solid #ECEAE4; border-radius: 8px; padding: 7px 9px; font-size: 12.5px; min-width: 0; }
+.block-time-in { width: 78px; background: #FAFAF7; border: 1px solid #ECEAE4; border-radius: 8px; padding: 7px 6px; font-size: 12px; }
+.proj-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.proj-name { flex: 1; background: #FAFAF7; border: 1px solid #ECEAE4; border-radius: 8px; padding: 8px 10px; font-size: 13px; min-width: 0; }
+.status-btn { border: 1px solid #ECEAE4; background: #FAFAF7; border-radius: 20px; padding: 5px 10px; font-size: 10.5px; cursor: pointer; white-space: nowrap; }
+.status-Rodando { background: #2F7A6B14; color: #2F7A6B; border-color: #2F7A6B33; }
+.status-Em-build { background: #C4862F14; color: #C4862F; border-color: #C4862F33; }
+.status-Pausado { background: #F0EEE8; color: #8B8680; }
+.add-line { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; background: none; border: 1px dashed #C7C2B6; border-radius: 9px; padding: 9px; font-size: 12.5px; color: #55524C; cursor: pointer; margin-top: 4px; }
+.rec-row { display: flex; align-items: center; gap: 8px; background: #FAFAF7; border: 1px solid #ECEAE4; border-radius: 9px; padding: 9px 11px; margin-bottom: 6px; font-size: 12.5px; }
+.rec-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.rec-info { flex: 1; color: #55524C; }
+.danger-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; background: #FFFFFF; border: 1px solid #E8C4BA; border-radius: 9px; padding: 10px; font-size: 12.5px; color: #D9573F; cursor: pointer; }
+.solid-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; background: #FAFAF7; border: 1px solid #ECEAE4; border-radius: 9px; padding: 10px; font-size: 12.5px; color: #55524C; cursor: pointer; margin-bottom: 8px; }
+
+/* fab + sheet */
+.fab { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); right: 50%; transform: translateX(228px); width: 52px; height: 52px; border-radius: 50%; background: #1F1D1B; color: #FAFAF7; border: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 18px rgba(0,0,0,0.18); cursor: pointer; z-index: 20; }
+@media (max-width: 560px) { .fab { right: 20px; transform: none; } }
+.sheet-backdrop { position: fixed; inset: 0; background: rgba(31,29,27,0.35); display: flex; align-items: flex-end; z-index: 30; }
+.sheet { background: #FAFAF7; width: 100%; max-width: 520px; margin: 0 auto; border-radius: 20px 20px 0 0; padding: 10px 18px calc(26px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; max-height: 90vh; overflow-y: auto; }
+.sheet-handle { width: 36px; height: 4px; background: #E2DFD7; border-radius: 4px; margin: 4px auto 6px; }
+.sheet-date { text-align: center; font-size: 11.5px; color: #8B8680; text-transform: capitalize; margin-bottom: 2px; }
+.type-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.type-chip { display: flex; align-items: center; gap: 5px; background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 20px; padding: 7px 12px; font-size: 12.5px; color: #8B8680; cursor: pointer; }
+.sheet-input { background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 10px; padding: 12px 14px; font-size: 14px; width: 100%; font-family: 'Inter', sans-serif; }
+.sheet-input.big { font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 24px; text-align: center; }
+.freq-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.freq-label { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: #8B8680; margin-right: 2px; }
+.freq-chip { background: #FFFFFF; border: 1px solid #ECEAE4; border-radius: 20px; padding: 5px 11px; font-size: 11.5px; color: #8B8680; cursor: pointer; }
+.freq-chip.active { background: #1F1D1B; border-color: #1F1D1B; color: #FAFAF7; }
+.sheet-submit { display: flex; align-items: center; justify-content: center; gap: 6px; background: #1F1D1B; color: #FAFAF7; border: none; border-radius: 10px; padding: 13px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div id="root"><div class="loading">carregando…</div></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+const STORAGE_KEY = "painel-state-v5";
+const WD = ["D", "S", "T", "Q", "Q", "S", "S"];
+const MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const MS = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const FREQ_LABEL = { daily: "Diária", weekly: "Semanal", monthly: "Mensal" };
+const BLOCK_COLORS = ["#8AA6FF", "#2F7A6B", "#C4862F", "#8A6BC4", "#D9573F", "#3A6EA5"];
+
+function toKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function money(n) { return "$" + Math.round(n).toLocaleString("en-US"); }
+function timeToMin(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+
+const DEFAULT_STATE = {
+  name: "",
+  monthlyTarget: 0,
+  rent: 0,
+  livingCost: 0,
+  entries: [],
+  recurring: [],
+  blocks: [],
+  liveDays: [],
+  liveTime: { start: "20:00", end: "23:00" },
+  projects: [],
+  onboarded: false,
+};
+
+function loadState() {
+  try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) return { ...DEFAULT_STATE, ...JSON.parse(raw) }; } catch (e) {}
+  return DEFAULT_STATE;
+}
+function useStorage() {
+  const [state, setState] = useState(loadState);
+  const save = useCallback((next) => {
+    setState(next);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
+  }, []);
+  return [state, save];
+}
+
+function Icon({ name, size = 14, color = "currentColor" }) {
+  const p = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
+  switch (name) {
+    case "plus": return <svg {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+    case "x": return <svg {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+    case "chevronDown": return <svg {...p}><polyline points="6 9 12 15 18 9"/></svg>;
+    case "chevronUp": return <svg {...p}><polyline points="18 15 12 9 6 15"/></svg>;
+    case "chevronLeft": return <svg {...p}><polyline points="15 18 9 12 15 6"/></svg>;
+    case "chevronRight": return <svg {...p}><polyline points="9 18 15 12 9 6"/></svg>;
+    case "check": return <svg {...p}><polyline points="20 6 9 17 4 12"/></svg>;
+    case "arrowUpRight": return <svg {...p}><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>;
+    case "arrowDownRight": return <svg {...p}><line x1="7" y1="7" x2="17" y2="17"/><polyline points="17 7 17 17 7 17"/></svg>;
+    case "download": return <svg {...p}><path d="M12 3v12"/><polyline points="7 10 12 15 17 10"/><line x1="5" y1="21" x2="19" y2="21"/></svg>;
+    case "repeat": return <svg {...p}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>;
+    case "trendingUp": return <svg {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>;
+    case "radio": return <svg {...p}><circle cx="12" cy="12" r="2"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>;
+    case "folder": return <svg {...p}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>;
+    case "grid": return <svg {...p}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>;
+    case "trash": return <svg {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>;
+    default: return null;
+  }
+}
+
+const TYPE_META = {
+  in: { label: "Entrada", color: "#2F7A6B", icon: "arrowUpRight" },
+  out: { label: "Saída", color: "#D9573F", icon: "arrowDownRight" },
+  invest: { label: "Investido", color: "#3A6EA5", icon: "trendingUp" },
+  project: { label: "Projeto", color: "#8A6BC4", icon: "folder" },
+  live: { label: "Live", color: "#C4862F", icon: "radio" },
+};
+const FIN = ["in", "out", "invest"];
+
+function matchesFreq(r, d) {
+  const start = new Date(r.startDate + "T00:00:00");
+  if (d < start) return false;
+  if (r.frequency === "daily") return true;
+  if (r.frequency === "weekly") return d.getDay() === start.getDay();
+  if (r.frequency === "monthly") return d.getDate() === start.getDate();
+  return false;
+}
+function entriesFor(state, key) {
+  const manual = state.entries.filter((e) => e.date === key);
+  const d = new Date(key + "T00:00:00");
+  const rec = state.recurring.filter((r) => matchesFreq(r, d)).map((r) => ({
+    id: `rec-${r.id}-${key}`, type: r.type, amount: r.amount, category: r.category,
+    note: r.note, isRecurring: true, ruleId: r.id, frequency: r.frequency, date: key,
+  }));
+  return [...manual, ...rec];
+}
+function monthEntries(state, mk) {
+  const [y, m] = mk.split("-").map(Number);
+  const n = new Date(y, m, 0).getDate();
+  let out = [];
+  for (let i = 1; i <= n; i++) out = out.concat(entriesFor(state, toKey(new Date(y, m - 1, i))));
+  return out;
+}
+function investedTotal(state, upto) {
+  let t = state.entries.filter((e) => e.type === "invest" && e.date <= upto).reduce((s, e) => s + e.amount, 0);
+  state.recurring.filter((r) => r.type === "invest").forEach((r) => {
+    let d = new Date(r.startDate + "T00:00:00");
+    const end = new Date(upto + "T00:00:00");
+    let g = 0;
+    while (d <= end && g < 3000) { if (matchesFreq(r, d)) t += r.amount; d.setDate(d.getDate() + 1); g++; }
+  });
+  return t;
+}
+function shiftMonth(mk, delta) {
+  const [y, m] = mk.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+function summarize(state, mk) {
+  const es = monthEntries(state, mk);
+  const inn = es.filter((e) => e.type === "in");
+  const out = es.filter((e) => e.type === "out");
+  const inv = es.filter((e) => e.type === "invest");
+  const tIn = inn.reduce((s, e) => s + e.amount, 0);
+  const tOut = out.reduce((s, e) => s + e.amount, 0);
+  const tInv = inv.reduce((s, e) => s + e.amount, 0);
+  const byCat = (l) => {
+    const m = {};
+    l.forEach((e) => { const k = e.category || "Sem categoria"; m[k] = (m[k] || 0) + e.amount; });
+    return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  };
+  return {
+    entries: es, tIn, tOut, tInv, net: tIn - tOut - tInv,
+    savings: tIn > 0 ? ((tIn - tOut) / tIn) * 100 : 0,
+    incCat: byCat(inn), expCat: byCat(out),
+    lives: es.filter((e) => e.type === "live").length,
+    projects: es.filter((e) => e.type === "project").length,
+    count: es.length,
+  };
+}
+
+/* ---------- CALENDAR ---------- */
+function CalendarStrip({ days, selected, onSelect, byDate, liveDays, today }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) { const a = ref.current.querySelector(".cal-day.selected"); if (a) a.scrollIntoView({ inline: "center", block: "nearest" }); }
+  }, []);
+  return (
+    <div className="cal-strip" ref={ref}>
+      {days.map((d) => {
+        const key = toKey(d);
+        const types = [...new Set((byDate[key] || []).map((e) => e.type))];
+        return (
+          <button key={key} className={`cal-day ${key === selected ? "selected" : ""} ${key === today ? "today" : ""}`} onClick={() => onSelect(key)}>
+            <span className="cal-weekday">{WD[d.getDay()]}</span>
+            <span className="cal-num">{d.getDate()}</span>
+            <span className="cal-dots">
+              {liveDays.includes(d.getDay()) && <span className="cal-dot live-marker" />}
+              {types.slice(0, 3).map((t) => <span key={t} className="cal-dot" style={{ background: TYPE_META[t].color }} />)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FullCalendar({ state, viewMonth, setViewMonth, selected, onSelect, today }) {
+  const [y, m] = viewMonth.split("-").map(Number);
+  const first = new Date(y, m - 1, 1);
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const startPad = first.getDay();
+  const cells = [];
+  for (let i = 0; i < startPad; i++) cells.push(null);
+  for (let i = 1; i <= daysInMonth; i++) cells.push(new Date(y, m - 1, i));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return (
+    <div className="cal-grid-wrap">
+      <div className="cal-header" style={{ marginBottom: 10 }}>
+        <div className="cal-month-nav">
+          <button className="nav-btn" onClick={() => setViewMonth(shiftMonth(viewMonth, -1))}><Icon name="chevronLeft" size={14} /></button>
+          <span className="cal-month-title">{MONTHS[m - 1]} {y}</span>
+          <button className="nav-btn" onClick={() => setViewMonth(shiftMonth(viewMonth, 1))}><Icon name="chevronRight" size={14} /></button>
+        </div>
+      </div>
+      <div className="cal-grid-head">{WD.map((d, i) => <span key={i}>{d}</span>)}</div>
+      <div className="cal-grid">
+        {cells.map((d, i) => {
+          if (!d) return <div key={i} className="grid-cell empty" />;
+          const key = toKey(d);
+          const types = [...new Set(entriesFor(state, key).map((e) => e.type))];
+          const isLive = state.liveDays.includes(d.getDay());
+          return (
+            <button key={key} className={`grid-cell ${key === selected ? "selected" : ""} ${key === today ? "today" : ""}`} onClick={() => onSelect(key)}>
+              <span className="grid-num">{d.getDate()}</span>
+              <span className="grid-dots">
+                {isLive && types.indexOf("live") === -1 && <span className="grid-dot" style={{ background: "#C4862F", opacity: 0.4 }} />}
+                {types.slice(0, 3).map((t) => <span key={t} className="grid-dot" style={{ background: TYPE_META[t].color }} />)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="cal-legend">
+        {Object.entries(TYPE_META).map(([k, meta]) => (
+          <span className="legend-item" key={k}><span className="legend-dot" style={{ background: meta.color }} />{meta.label}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- SHEET ---------- */
+function AddSheet({ open, onClose, onAdd, onAddRec, projects, defaultType, dateLabel }) {
+  const [type, setType] = useState(defaultType || "in");
+  const [amount, setAmount] = useState("");
+  const [cat, setCat] = useState("");
+  const [note, setNote] = useState("");
+  const [freq, setFreq] = useState("none");
+  useEffect(() => { if (open) { setType(defaultType || "in"); setAmount(""); setCat(""); setNote(""); setFreq("none"); } }, [open, defaultType]);
+  if (!open) return null;
+  const needsAmt = FIN.includes(type);
+  const submit = () => {
+    if (needsAmt && (!amount || isNaN(Number(amount)))) return;
+    if (!needsAmt && !note.trim() && !cat.trim()) return;
+    if (needsAmt && freq !== "none") onAddRec({ type, amount: Number(amount), category: cat || TYPE_META[type].label, note, frequency: freq });
+    else onAdd({ type, amount: needsAmt ? Number(amount) : null, category: cat || (type === "project" ? (projects[0] && projects[0].name) || "Projeto" : ""), note });
+    onClose();
+  };
+  return (
+    <div className="sheet-backdrop" onClick={onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-handle" />
+        <div className="sheet-date">{dateLabel}</div>
+        <div className="type-row">
+          {Object.entries(TYPE_META).map(([k, meta]) => (
+            <button key={k} className="type-chip" style={type === k ? { borderColor: meta.color, color: meta.color, background: `${meta.color}14` } : {}} onClick={() => setType(k)}>
+              <Icon name={meta.icon} size={14} /> {meta.label}
+            </button>
+          ))}
+        </div>
+        {needsAmt ? (
+          <>
+            <input className="sheet-input big" placeholder="0" type="number" inputMode="decimal" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <input className="sheet-input" placeholder="categoria (campo, TCG, aluguel...)" value={cat} onChange={(e) => setCat(e.target.value)} />
+          </>
+        ) : type === "project" ? (
+          <select className="sheet-input" value={cat} onChange={(e) => setCat(e.target.value)}>
+            <option value="">selecione o projeto</option>
+            {projects.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
+          </select>
+        ) : null}
+        <input className="sheet-input" placeholder="nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} />
+        {needsAmt && (
+          <div className="freq-row">
+            <span className="freq-label"><Icon name="repeat" size={12} /> repete</span>
+            {["none", "daily", "weekly", "monthly"].map((f) => (
+              <button key={f} className={`freq-chip ${freq === f ? "active" : ""}`} onClick={() => setFreq(f)}>{f === "none" ? "Não" : FREQ_LABEL[f]}</button>
+            ))}
+          </div>
+        )}
+        <button className="sheet-submit" onClick={submit}><Icon name="check" size={15} color="#FAFAF7" /> Salvar</button>
+      </div>
+    </div>
+  );
+}
+
+function EntryRow({ entry, onRemove }) {
+  const meta = TYPE_META[entry.type];
+  return (
+    <div className="entry-row">
+      <span className="entry-icon" style={{ background: `${meta.color}18`, color: meta.color }}><Icon name={meta.icon} size={14} /></span>
+      <div className="entry-main">
+        <span className="entry-cat">
+          {entry.category || meta.label}
+          {entry.isRecurring && <span className="recurring-badge"><Icon name="repeat" size={9} /> {FREQ_LABEL[entry.frequency]}</span>}
+        </span>
+        {entry.note && <span className="entry-note">{entry.note}</span>}
+      </div>
+      {entry.amount != null && <span className="entry-amount" style={{ color: meta.color }}>{entry.type === "out" ? "−" : "+"}{money(entry.amount)}</span>}
+      <button className="entry-x" onClick={() => onRemove(entry)}><Icon name="x" size={13} /></button>
+    </div>
+  );
+}
+
+/* ---------- REPORT ---------- */
+function BarList({ data, total, color }) {
+  if (!data.length) return <div className="report-empty" style={{ padding: "12px 0" }}>Nada lançado.</div>;
+  return data.map(([cat, amt]) => {
+    const pct = total > 0 ? (amt / total) * 100 : 0;
+    return (
+      <div className="bar-row" key={cat}>
+        <div className="bar-head">
+          <span>{cat}<span className="bar-pct">{Math.round(pct)}%</span></span>
+          <b>{money(amt)}</b>
+        </div>
+        <div className="bar-track"><div className="bar-fill" style={{ width: `${pct}%`, background: color }} /></div>
+      </div>
+    );
+  });
+}
+function reportCSV(mk, s, target) {
+  let c = `Resumo mensal,${mk}\n\nMeta,${target}\nEntradas,${s.tIn}\nSaidas,${s.tOut}\nInvestido,${s.tInv}\nSaldo liquido,${s.net}\nTaxa de poupanca,${s.savings.toFixed(1)}%\nLives,${s.lives}\nProjetos,${s.projects}\n\n`;
+  c += "ENTRADAS POR CATEGORIA\ncategoria,valor\n" + s.incCat.map(([k, v]) => `${k},${v}`).join("\n");
+  c += "\n\nSAIDAS POR CATEGORIA\ncategoria,valor\n" + s.expCat.map(([k, v]) => `${k},${v}`).join("\n");
+  c += "\n\nLANCAMENTOS\ndata,tipo,categoria,valor,nota,recorrente\n";
+  c += s.entries.map((e) => `${e.date},${e.type},${e.category || ""},${e.amount ?? ""},"${(e.note || "").replace(/"/g, "'")}",${e.isRecurring ? FREQ_LABEL[e.frequency] : ""}`).join("\n");
+  return c;
+}
+function download(name, content) {
+  const b = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const u = URL.createObjectURL(b);
+  const a = document.createElement("a");
+  a.href = u; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(u);
+}
+
+function ReportTab({ state, mk, setMk, today }) {
+  const s = summarize(state, mk);
+  const prev = summarize(state, shiftMonth(mk, -1));
+  const [y, m] = mk.split("-").map(Number);
+  const targetPct = state.monthlyTarget > 0 ? (s.tIn / state.monthlyTarget) * 100 : 0;
+  const inv = investedTotal(state, toKey(new Date(y, m, 0)));
+  const delta = (c, o) => (o === 0 ? null : ((c - o) / o) * 100);
+  const dIn = delta(s.tIn, prev.tIn), dOut = delta(s.tOut, prev.tOut);
+  const isFuture = mk >= today.slice(0, 7);
+
+  const notes = [];
+  if (s.tIn > 0 && state.monthlyTarget > 0) {
+    if (s.tIn >= state.monthlyTarget) notes.push(`Meta batida: ${money(s.tIn)} contra meta de ${money(state.monthlyTarget)}.`);
+    else notes.push(`Faltaram ${money(state.monthlyTarget - s.tIn)} pra bater a meta de ${money(state.monthlyTarget)}.`);
+  }
+  if (s.expCat.length) {
+    const [c, v] = s.expCat[0];
+    notes.push(`Maior gasto: ${c}, ${money(v)} — ${Math.round((v / s.tOut) * 100)}% de tudo que saiu.`);
+  }
+  if (s.incCat.length) {
+    const [c, v] = s.incCat[0];
+    const share = Math.round((v / s.tIn) * 100);
+    if (share >= 70 && s.incCat.length > 1) notes.push(`${share}% da renda veio de "${c}". Diversificar reduz risco.`);
+    else if (s.incCat.length === 1 && s.tIn > 0) notes.push(`Toda a renda veio de "${c}". Uma segunda fonte deixaria o mês menos frágil.`);
+  }
+  if (s.lives > 0) notes.push(`${s.lives} live${s.lives > 1 ? "s" : ""} registrada${s.lives > 1 ? "s" : ""} no mês.`);
+
+  return (
+    <div>
+      <div className="cal-header" style={{ marginBottom: 16 }}>
+        <button className="nav-btn" onClick={() => setMk(shiftMonth(mk, -1))}><Icon name="chevronLeft" size={16} /></button>
+        <span className="cal-month-title" style={{ fontSize: 15 }}>{MONTHS[m - 1]} {y}</span>
+        <button className="nav-btn" onClick={() => setMk(shiftMonth(mk, 1))} disabled={isFuture}><Icon name="chevronRight" size={16} /></button>
+      </div>
+
+      {s.count === 0 ? (
+        <div className="report-empty">Nenhum lançamento em {MONTHS[m - 1]}.<br />Registra algo no Diário e o resumo aparece aqui.</div>
+      ) : (
+        <>
+          <div className="hero-card">
+            <span className="hero-label">Saldo líquido do mês</span>
+            <div className={`hero-value ${s.net < 0 ? "neg" : ""}`}>{s.net < 0 ? "−" : ""}{money(Math.abs(s.net))}</div>
+            <div className="hero-split">
+              <div><span>Entradas</span><span style={{ color: "#7FD4BE" }}>{money(s.tIn)}</span></div>
+              <div><span>Saídas</span><span style={{ color: "#F09A85" }}>{money(s.tOut)}</span></div>
+              <div><span>Investido</span><span style={{ color: "#96BEE8" }}>{money(s.tInv)}</span></div>
+            </div>
+          </div>
+
+          <div className="kpi-grid">
+            <div className="kpi">
+              <span className="kpi-label">Meta do mês</span>
+              <span className="kpi-value">{state.monthlyTarget > 0 ? Math.round(targetPct) + "%" : "—"}</span>
+              <span className="kpi-sub">{state.monthlyTarget > 0 ? `de ${money(state.monthlyTarget)}` : "defina em Ajustes"}</span>
+            </div>
+            <div className="kpi">
+              <span className="kpi-label">Taxa de poupança</span>
+              <span className="kpi-value">{Math.round(s.savings)}%</span>
+              <span className="kpi-sub">do que entrou</span>
+            </div>
+            <div className="kpi">
+              <span className="kpi-label">Entradas</span>
+              <span className="kpi-value">{money(s.tIn)}</span>
+              {dIn !== null ? <span className={`kpi-sub ${dIn >= 0 ? "up" : "down"}`}>{dIn >= 0 ? "▲" : "▼"} {Math.abs(Math.round(dIn))}% vs {MS[(m + 10) % 12]}</span> : <span className="kpi-sub">sem base anterior</span>}
+            </div>
+            <div className="kpi">
+              <span className="kpi-label">Saídas</span>
+              <span className="kpi-value">{money(s.tOut)}</span>
+              {dOut !== null ? <span className={`kpi-sub ${dOut <= 0 ? "up" : "down"}`}>{dOut >= 0 ? "▲" : "▼"} {Math.abs(Math.round(dOut))}% vs {MS[(m + 10) % 12]}</span> : <span className="kpi-sub">sem base anterior</span>}
+            </div>
+          </div>
+
+          <div className="report-section">
+            <div className="report-section-title"><span>Renda por fonte</span><span>{money(s.tIn)}</span></div>
+            <BarList data={s.incCat} total={s.tIn} color="#2F7A6B" />
+          </div>
+
+          <div className="report-section">
+            <div className="report-section-title"><span>Gastos por categoria</span><span>{money(s.tOut)}</span></div>
+            <BarList data={s.expCat} total={s.tOut} color="#D9573F" />
+          </div>
+
+          <div className="report-section">
+            <div className="report-section-title"><span>Atividade</span></div>
+            <div className="activity-grid">
+              <div className="activity-card">
+                <span className="activity-icon" style={{ background: "#C4862F18", color: "#C4862F" }}><Icon name="radio" size={15} /></span>
+                <div><div className="activity-num">{s.lives}</div><div className="activity-label">lives</div></div>
+              </div>
+              <div className="activity-card">
+                <span className="activity-icon" style={{ background: "#8A6BC418", color: "#8A6BC4" }}><Icon name="folder" size={15} /></span>
+                <div><div className="activity-num">{s.projects}</div><div className="activity-label">registros de projeto</div></div>
+              </div>
+              <div className="activity-card">
+                <span className="activity-icon" style={{ background: "#3A6EA518", color: "#3A6EA5" }}><Icon name="trendingUp" size={15} /></span>
+                <div><div className="activity-num">{money(inv)}</div><div className="activity-label">investido acumulado</div></div>
+              </div>
+              <div className="activity-card">
+                <span className="activity-icon" style={{ background: "#F0EEE8", color: "#55524C" }}><Icon name="check" size={15} /></span>
+                <div><div className="activity-num">{s.count}</div><div className="activity-label">lançamentos</div></div>
+              </div>
+            </div>
+          </div>
+
+          {notes.length > 0 && (
+            <div className="report-section">
+              <div className="report-section-title"><span>Leitura do mês</span></div>
+              {notes.map((t, i) => <div className="insight" key={i}>{t}</div>)}
+            </div>
+          )}
+
+          <button className="solid-btn" onClick={() => download(`resumo-${mk}.csv`, reportCSV(mk, s, state.monthlyTarget))}>
+            <Icon name="download" size={13} /> Exportar relatório de {MONTHS[m - 1]}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------- SETTINGS ---------- */
+function SettingsTab({ state, save }) {
+  const set = (patch) => save({ ...state, ...patch });
+  const totalNeed = (Number(state.rent) || 0) + (Number(state.livingCost) || 0);
+
+  const addBlock = () => set({
+    blocks: [...state.blocks, {
+      id: Date.now().toString(), label: "Novo bloco",
+      start: "09:00", end: "12:00",
+      color: BLOCK_COLORS[state.blocks.length % BLOCK_COLORS.length],
+    }],
+  });
+  const updBlock = (id, f, v) => set({ blocks: state.blocks.map((b) => (b.id === id ? { ...b, [f]: v } : b)) });
+  const delBlock = (id) => set({ blocks: state.blocks.filter((b) => b.id !== id) });
+
+  const addProj = () => set({ projects: [...state.projects, { id: Date.now().toString(), name: "", status: "Em build" }] });
+  const updProj = (id, f, v) => set({ projects: state.projects.map((p) => (p.id === id ? { ...p, [f]: v } : p)) });
+  const delProj = (id) => set({ projects: state.projects.filter((p) => p.id !== id) });
+  const cycle = { "Em build": "Rodando", "Rodando": "Pausado", "Pausado": "Em build" };
+
+  const toggleLive = (i) => set({ liveDays: state.liveDays.includes(i) ? state.liveDays.filter((d) => d !== i) : [...state.liveDays, i].sort() });
+
+  const wipe = () => {
+    if (confirm("Apagar TODOS os dados do app? Isso não tem volta. Exporta a planilha antes se quiser guardar.")) {
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+  };
+  const exportAll = () => {
+    const all = [...state.entries];
+    let c = "data,tipo,categoria,valor,nota\n";
+    c += all.map((e) => `${e.date},${e.type},${e.category || ""},${e.amount ?? ""},"${(e.note || "").replace(/"/g, "'")}"`).join("\n");
+    c += "\n\nRECORRENTES\ninicio,tipo,categoria,valor,frequencia\n";
+    c += state.recurring.map((r) => `${r.startDate},${r.type},${r.category},${r.amount},${FREQ_LABEL[r.frequency]}`).join("\n");
+    download("painel-backup.csv", c);
+  };
+
+  return (
+    <div>
+      <div className="q-card">
+        <div className="q-title">Como você quer ser chamado?</div>
+        <div className="q-hint">Aparece no topo do app. Pode deixar em branco.</div>
+        <input className="q-input" placeholder="seu nome" value={state.name} onChange={(e) => set({ name: e.target.value })} />
+      </div>
+
+      <div className="q-card">
+        <div className="q-title">Quanto você precisa por mês pra viver?</div>
+        <div className="q-hint">Some o essencial. O app usa isso pra calcular sua meta mínima de renda.</div>
+        <div className="q-field">
+          <label className="q-label">Aluguel</label>
+          <input className="q-input" type="number" inputMode="decimal" placeholder="0" value={state.rent || ""} onChange={(e) => set({ rent: Number(e.target.value) || 0 })} />
+        </div>
+        <div className="q-field">
+          <label className="q-label">Comida, contas, transporte e o resto</label>
+          <input className="q-input" type="number" inputMode="decimal" placeholder="0" value={state.livingCost || ""} onChange={(e) => set({ livingCost: Number(e.target.value) || 0 })} />
+        </div>
+        {totalNeed > 0 && (
+          <div className="q-derived">
+            Custo de vida: <b>{money(totalNeed)}/mês</b> — <b>{money(totalNeed / 30)}/dia</b>.
+            {state.monthlyTarget > 0 && state.monthlyTarget < totalNeed && <><br />⚠️ Sua meta está abaixo do custo de vida.</>}
+          </div>
+        )}
+      </div>
+
+      <div className="q-card">
+        <div className="q-title">Qual sua meta de renda mensal?</div>
+        <div className="q-hint">Não é o mínimo pra sobreviver — é o quanto você quer <i>fazer</i>. Coloca um número que puxa você pra frente.</div>
+        <input className="q-input" type="number" inputMode="decimal" placeholder="0" value={state.monthlyTarget || ""} onChange={(e) => set({ monthlyTarget: Number(e.target.value) || 0 })} />
+        {state.monthlyTarget > 0 && (
+          <div className="q-derived">
+            Isso dá <b>{money(state.monthlyTarget / 30)}/dia</b> ou <b>{money(state.monthlyTarget / 4.33)}/semana</b>.
+            {totalNeed > 0 && state.monthlyTarget > totalNeed && <><br />Sobra estimada: <b>{money(state.monthlyTarget - totalNeed)}/mês</b> pra investir ou reinvestir.</>}
+          </div>
+        )}
+      </div>
+
+      <div className="q-card">
+        <div className="q-title">Como é seu dia?</div>
+        <div className="q-hint">Cria os blocos que fazem sentido pra você — trabalho, dev, live, academia, o que for. Aparecem no Diário.</div>
+        {state.blocks.map((b) => (
+          <div className="block-edit-row" key={b.id}>
+            <span className="block-color" style={{ background: b.color }} />
+            <input className="block-name" value={b.label} placeholder="nome do bloco" onChange={(e) => updBlock(b.id, "label", e.target.value)} />
+            <input className="block-time-in" type="time" value={b.start} onChange={(e) => updBlock(b.id, "start", e.target.value)} />
+            <input className="block-time-in" type="time" value={b.end} onChange={(e) => updBlock(b.id, "end", e.target.value)} />
+            <button className="entry-x" onClick={() => delBlock(b.id)}><Icon name="x" size={14} /></button>
+          </div>
+        ))}
+        <button className="add-line" onClick={addBlock}><Icon name="plus" size={13} /> Adicionar bloco</button>
+      </div>
+
+      <div className="q-card">
+        <div className="q-title">Em quais dias você faz live?</div>
+        <div className="q-hint">Marca os dias fixos. Eles ficam pré-marcados no calendário como lembrete.</div>
+        <div className="weekday-row">
+          {WD.map((d, i) => (
+            <button key={i} className={`weekday-btn ${state.liveDays.includes(i) ? "active" : ""}`} onClick={() => toggleLive(i)}>{d}</button>
+          ))}
+        </div>
+        <div className="q-field" style={{ marginTop: 12 }}>
+          <label className="q-label">Horário padrão</label>
+          <div className="q-inline">
+            <input type="time" value={state.liveTime.start} onChange={(e) => set({ liveTime: { ...state.liveTime, start: e.target.value } })} />
+            <span style={{ color: "#8B8680" }}>–</span>
+            <input type="time" value={state.liveTime.end} onChange={(e) => set({ liveTime: { ...state.liveTime, end: e.target.value } })} />
+          </div>
+        </div>
+        {state.liveDays.length > 0 && (
+          <div className="q-derived">
+            <b>{state.liveDays.length} live{state.liveDays.length > 1 ? "s" : ""}/semana</b> — cerca de <b>{state.liveDays.length * 4} por mês</b>.
+            {(() => {
+              const h = (timeToMin(state.liveTime.end) - timeToMin(state.liveTime.start)) / 60;
+              return h > 0 ? <><br />Isso são ~<b>{Math.round(h * state.liveDays.length * 4)}h/mês</b> no ar.</> : null;
+            })()}
+          </div>
+        )}
+      </div>
+
+      <div className="q-card">
+        <div className="q-title">Quais projetos você está tocando?</div>
+        <div className="q-hint">Toca no status pra alternar entre Em build → Rodando → Pausado.</div>
+        {state.projects.map((p) => (
+          <div className="proj-row" key={p.id}>
+            <input className="proj-name" value={p.name} placeholder="nome do projeto" onChange={(e) => updProj(p.id, "name", e.target.value)} />
+            <button className={`status-btn status-${p.status.replace(" ", "-")}`} onClick={() => updProj(p.id, "status", cycle[p.status])}>{p.status}</button>
+            <button className="entry-x" onClick={() => delProj(p.id)}><Icon name="x" size={14} /></button>
+          </div>
+        ))}
+        <button className="add-line" onClick={addProj}><Icon name="plus" size={13} /> Adicionar projeto</button>
+      </div>
+
+      <div className="q-card">
+        <div className="q-title">Lançamentos recorrentes</div>
+        <div className="q-hint">
+          {state.recurring.length === 0
+            ? "Nenhum ainda. Pra criar, registra uma entrada ou saída no Diário e escolhe se ela repete (diária, semanal ou mensal). Aluguel é o caso clássico."
+            : "Esses entram sozinhos, sem você digitar de novo."}
+        </div>
+        {state.recurring.map((r) => {
+          const meta = TYPE_META[r.type];
+          return (
+            <div className="rec-row" key={r.id}>
+              <span className="rec-dot" style={{ background: meta.color }} />
+              <span className="rec-info">{r.category || meta.label} · {money(r.amount)} · {FREQ_LABEL[r.frequency]}</span>
+              <button className="entry-x" onClick={() => set({ recurring: state.recurring.filter((x) => x.id !== r.id) })}><Icon name="x" size={13} /></button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="q-card">
+        <div className="q-title">Seus dados</div>
+        <div className="q-hint">Tudo fica salvo só neste aparelho. Nada vai pra servidor nenhum. Se trocar de celular ou limpar o navegador, você perde — por isso vale exportar de vez em quando.</div>
+        <button className="solid-btn" onClick={exportAll}><Icon name="download" size={13} /> Exportar backup completo (CSV)</button>
+        <button className="danger-btn" onClick={wipe}><Icon name="trash" size={13} /> Apagar tudo e recomeçar</button>
+      </div>
+
+      <div style={{ height: 20 }} />
+    </div>
+  );
+}
+
+/* ---------- APP ---------- */
+function App() {
+  const [state, save] = useStorage();
+  const today = useMemo(() => toKey(new Date()), []);
+  const [tab, setTab] = useState("diario");
+  const [selected, setSelected] = useState(today);
+  const [expanded, setExpanded] = useState(false);
+  const [viewMonth, setViewMonth] = useState(today.slice(0, 7));
+  const [reportMonth, setReportMonth] = useState(today.slice(0, 7));
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetType, setSheetType] = useState("in");
+  const [nowMin, setNowMin] = useState(() => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); });
+
+  useEffect(() => {
+    const t = setInterval(() => { const d = new Date(); setNowMin(d.getHours() * 60 + d.getMinutes()); }, 60000);
+    return () => clearInterval(t);
+  }, []);
+
+  const days = useMemo(() => {
+    const arr = [];
+    const base = new Date(); base.setHours(0, 0, 0, 0);
+    for (let i = -13; i <= 6; i++) { const d = new Date(base); d.setDate(base.getDate() + i); arr.push(d); }
+    return arr;
+  }, []);
+
+  const byDate = useMemo(() => {
+    const m = {};
+    days.forEach((d) => { const k = toKey(d); m[k] = entriesFor(state, k); });
+    return m;
+  }, [state, days]);
+
+  const selDate = new Date(selected + "T00:00:00");
+  const selEntries = entriesFor(state, selected).slice().reverse();
+  const mk = selected.slice(0, 7);
+  const s = summarize(state, mk);
+  const pct = state.monthlyTarget > 0 ? Math.min(100, (s.tIn / state.monthlyTarget) * 100) : 0;
+  const inv = investedTotal(state, today);
+  const isToday = selected === today;
+
+  const addEntry = (p) => save({ ...state, entries: [...state.entries, { id: Date.now().toString(), date: selected, ...p }] });
+  const addRec = (p) => save({ ...state, recurring: [...state.recurring, { id: Date.now().toString(), startDate: selected, ...p }] });
+  const removeEntry = (e) => {
+    if (e.isRecurring) save({ ...state, recurring: state.recurring.filter((r) => r.id !== e.ruleId) });
+    else save({ ...state, entries: state.entries.filter((x) => x.id !== e.id) });
+  };
+  const openSheet = (t) => { setSheetType(t); setSheetOpen(true); };
+  const pickDay = (k) => { setSelected(k); };
+
+  const dateLabel = selDate.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+
+  return (
+    <div className="app">
+      <div className="frame">
+        <header className="topbar">
+          <h1>{state.name ? `Olá, ${state.name}` : "Painel"}</h1>
+          <span className="topbar-sub">{MS[selDate.getMonth()]} {selDate.getFullYear()}</span>
+        </header>
+
+        <div className="tabs">
+          <button className={`tab ${tab === "diario" ? "active" : ""}`} onClick={() => setTab("diario")}>Diário</button>
+          <button className={`tab ${tab === "resumo" ? "active" : ""}`} onClick={() => { setReportMonth(mk); setTab("resumo"); }}>Resumo</button>
+          <button className={`tab ${tab === "ajustes" ? "active" : ""}`} onClick={() => setTab("ajustes")}>Ajustes</button>
+        </div>
+
+        {tab === "diario" && (
+          <>
+            <div className="cal-header">
+              <span style={{ fontSize: 12, color: "#8B8680" }}>{expanded ? "Mês inteiro" : "Últimos dias"}</span>
+              <button className="cal-expand" onClick={() => { setViewMonth(selected.slice(0, 7)); setExpanded(!expanded); }}>
+                <Icon name={expanded ? "chevronUp" : "grid"} size={13} />
+                {expanded ? "Recolher" : "Ver calendário completo"}
+              </button>
+            </div>
+
+            {expanded
+              ? <FullCalendar state={state} viewMonth={viewMonth} setViewMonth={setViewMonth} selected={selected} onSelect={pickDay} today={today} />
+              : <CalendarStrip days={days} selected={selected} onSelect={pickDay} byDate={byDate} liveDays={state.liveDays} today={today} />}
+
+            <div className="month-card">
+              <div className="month-ring-wrap">
+                <svg viewBox="0 0 64 64" className="ring">
+                  <circle cx="32" cy="32" r="27" className="ring-bg" />
+                  <circle cx="32" cy="32" r="27" className="ring-fg" style={{ strokeDasharray: `${pct * 1.696} 1000` }} />
+                </svg>
+                <span className="ring-pct">{state.monthlyTarget > 0 ? Math.round(pct) + "%" : "—"}</span>
+              </div>
+              <div className="month-numbers">
+                <div><span className="dot-legend" style={{ background: "#2F7A6B" }} />Entradas <b>{money(s.tIn)}</b></div>
+                <div><span className="dot-legend" style={{ background: "#D9573F" }} />Saídas <b>{money(s.tOut)}</b></div>
+                <div className="month-target">{state.monthlyTarget > 0 ? `meta ${money(state.monthlyTarget)}` : "defina sua meta em Ajustes"}</div>
+              </div>
+            </div>
+
+            <div className="invest-card">
+              <span className="invest-icon"><Icon name="trendingUp" size={17} /></span>
+              <div className="invest-text">
+                <span className="invest-label">Investido no total</span>
+                <span className="invest-amount">{money(inv)}</span>
+              </div>
+            </div>
+
+            {state.blocks.length > 0 && isToday && (
+              <div className="plan-card">
+                <div className="plan-title">Plano de hoje</div>
+                {state.blocks.map((b) => {
+                  const active = nowMin >= timeToMin(b.start) && nowMin < timeToMin(b.end);
+                  return (
+                    <div className="plan-row" key={b.id}>
+                      <span className="plan-bar" style={{ background: b.color }} />
+                      <span className="plan-name">{b.label}</span>
+                      {active && <span className="plan-now">agora</span>}
+                      <span className="plan-time">{b.start}–{b.end}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="day-head">{dateLabel}</div>
+
+            <div className="quick-add-grid">
+              {Object.entries(TYPE_META).map(([k, meta]) => (
+                <button key={k} className="quick-btn" onClick={() => openSheet(k)}>
+                  <span className="quick-icon" style={{ background: `${meta.color}18`, color: meta.color }}><Icon name={meta.icon} size={15} /></span>
+                  <span className="quick-label">{meta.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="entry-list">
+              {selEntries.map((e) => <EntryRow key={e.id} entry={e} onRemove={removeEntry} />)}
+              {selEntries.length === 0 && <div className="empty-day">Nada registrado nesse dia. Toca num dos botões acima.</div>}
+            </div>
+          </>
+        )}
+
+        {tab === "resumo" && <ReportTab state={state} mk={reportMonth} setMk={setReportMonth} today={today} />}
+        {tab === "ajustes" && <SettingsTab state={state} save={save} />}
+      </div>
+
+      {tab === "diario" && (
+        <button className="fab" onClick={() => openSheet("in")}><Icon name="plus" size={22} color="#FAFAF7" /></button>
+      )}
+
+      <AddSheet open={sheetOpen} onClose={() => setSheetOpen(false)} onAdd={addEntry} onAddRec={addRec} projects={state.projects} defaultType={sheetType} dateLabel={dateLabel} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+}
+</script>
+</body>
+</html>
